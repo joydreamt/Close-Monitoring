@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proof Checker</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f4f0;
+      color: #1a1a18;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .checker-wrap {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 2rem 2.25rem;
+      max-width: 620px;
+      width: 100%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+    .title-text { font-size: 22px; font-weight: 500; color: #1a1a18; }
+    .title-badge {
+      background: #e6f1fb;
+      color: #185fa5;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .counter-row { font-size: 13px; color: #888780; margin-bottom: 1.25rem; }
+    .card {
+      background: #fafaf8;
+      border: 0.5px solid #d3d1c7;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      min-height: 120px;
+      margin-bottom: 1.25rem;
+    }
+    .card-placeholder {
+      color: #888780;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 80px;
+      gap: 10px;
+    }
+    .error-line { font-size: 15px; color: #5f5e5a; margin-bottom: 0.75rem; line-height: 1.6; }
+    .error-line code {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: #fcebeb;
+      color: #a32d2d;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .fix-line { display: flex; align-items: flex-start; gap: 10px; margin-top: 0.5rem; }
+    .fix-arrow { color: #3b6d11; font-size: 18px; margin-top: 2px; flex-shrink: 0; }
+    .fix-text { font-size: 15px; color: #1a1a18; line-height: 1.6; }
+    .fix-text code {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: #eaf3de;
+      color: #3b6d11;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .reason {
+      font-size: 12px;
+      color: #888780;
+      margin-top: 0.75rem;
+      border-top: 0.5px solid #d3d1c7;
+      padding-top: 0.6rem;
+    }
+    .btn-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    button.next-btn {
+      background: #185fa5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 1.25rem;
+      height: 38px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.next-btn:hover { opacity: 0.88; }
+    button.next-btn:disabled { opacity: 0.35; cursor: default; }
+    button.reset-btn {
+      background: transparent;
+      color: #5f5e5a;
+      border: 0.5px solid #b4b2a9;
+      border-radius: 8px;
+      padding: 0 1rem;
+      height: 38px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.reset-btn:hover { background: #f5f4f0; }
+    .done-msg {
+      color: #3b6d11;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="checker-wrap">
+    <div class="title-row">
+      <span class="title-text">Proof Checker</span>
+      <span class="title-badge"><i class="ti ti-pencil"></i> proofreading</span>
+    </div>
+
+    <div class="counter-row" id="counter">Press the button to reveal the first error.</div>
+
+    <div class="card" id="card">
+      <div class="card-placeholder">
+        <i class="ti ti-file-search" style="font-size:28px;"></i>
+        Errors will appear one at a time
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="next-btn" id="nextBtn" onclick="showNext()">
+        Next error <i class="ti ti-arrow-right"></i>
+      </button>
+      <button class="reset-btn" onclick="resetChecker()">
+        <i class="ti ti-refresh"></i> Start over
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const errors = [
+      {
+        wrong: '"editorial team have completed"',
+        right: '"editorial team <b>has</b> completed"',
+        reason: 'Collective noun subject → singular verb. "Editorial team" is treated as a single unit.'
+      },
+      {
+        wrong: '"memory title...were submitted"',
+        right: '"memory title...<b>was</b> submitted"',
+        reason: 'Singular subject (memory title) requires a singular verb. Use "was".'
+      },
+      {
+        wrong: '"aproximately"',
+        right: '"<b>approximately</b>"',
+        reason: 'Spelling error — missing the second "p". ap-prox-i-mate-ly.'
+      },
+      {
+        wrong: '"beleive"',
+        right: '"<b>believe</b>"',
+        reason: '"i before e" rule applies here. be-lieve.'
+      },
+      {
+        wrong: '"twelve new title\'s"',
+        right: '"twelve new <b>titles</b>"',
+        reason: 'Incorrect possessive apostrophe — a plural noun needs no apostrophe. Use "titles".'
+      }
+    ];
+
+    let idx = -1;
+
+    function showNext() {
+      idx++;
+      const card = document.getElementById('card');
+      const counter = document.getElementById('counter');
+      const btn = document.getElementById('nextBtn');
+      if (idx >= errors.length) return;
+      const e = errors[idx];
+      card.innerHTML = `
+        <div class="error-line"><i class="ti ti-x" style="color:#a32d2d;font-size:15px;margin-right:6px"></i>Error: <code>${e.wrong}</code></div>
+        <div class="fix-line">
+          <span class="fix-arrow"><i class="ti ti-arrow-right"></i></span>
+          <span class="fix-text">Fix: <code>${e.right}</code></span>
+        </div>
+        <div class="reason">${e.reason}</div>
+      `;
+      counter.textContent = `Error ${idx + 1} of ${errors.length}`;
+      if (idx === errors.length - 1) {
+        btn.disabled = true;
+        const done = document.createElement('span');
+        done.className = 'done-msg';
+        done.innerHTML = '<i class="ti ti-circle-check"></i> All errors reviewed!';
+        document.querySelector('.btn-row').appendChild(done);
+      }
+    }
+
+    function resetChecker() {
+      idx = -1;
+      document.getElementById('card').innerHTML = `
+        <div class="card-placeholder">
+          <i class="ti ti-file-search" style="font-size:28px;"></i>
+          Errors will appear one at a time
+        </div>`;
+      document.getElementById('counter').textContent = 'Press the button to reveal the first error.';
+      document.getElementById('nextBtn').disabled = false;
+      const done = document.querySelector('.done-msg');
+      if (done) done.remove();
+    }
+  </script>
+</body>
+</html>
