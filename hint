@@ -127,6 +127,49 @@
       align-items: center;
       gap: 6px;
     }
+    .output-panel {
+      margin-top: 1.75rem;
+      border-top: 0.5px solid #d3d1c7;
+      padding-top: 1.25rem;
+    }
+    .output-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888780;
+      margin-bottom: 0.75rem;
+    }
+    .output-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f5f4f0;
+      border: 0.5px solid #d3d1c7;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      gap: 1rem;
+    }
+    .output-var {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      color: #185fa5;
+      background: #e6f1fb;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .output-value {
+      font-size: 22px;
+      font-weight: 500;
+      color: #1a1a18;
+      min-width: 28px;
+      text-align: right;
+    }
+    .qualtrics-status {
+      font-size: 12px;
+      color: #888780;
+      margin-top: 0.6rem;
+    }
   </style>
 </head>
 <body>
@@ -145,13 +188,16 @@
       </div>
     </div>
 
+    <div style="display:none;">
+      <span id="hintCountDisplay">0</span>
+      <span id="qualtricsStatus"></span>
+    </div>
+
     <div class="btn-row">
       <button class="next-btn" id="nextBtn" onclick="showNext()">
         Next error <i class="ti ti-arrow-right"></i>
       </button>
-      <button class="reset-btn" onclick="resetChecker()">
-        <i class="ti ti-refresh"></i> Start over
-      </button>
+
     </div>
   </div>
 
@@ -185,6 +231,21 @@
     ];
 
     let idx = -1;
+    let hintCount = 0;
+
+    function updateQualtrics() {
+      // Qualtrics Embedded Data로 힌트 횟수 전송
+      // Embedded Data 변수명: hint_count (Qualtrics Survey Flow에서 동일하게 설정)
+      if (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine) {
+        Qualtrics.SurveyEngine.setEmbeddedData('hint_count', hintCount);
+      }
+      // 디버그 패널 업데이트
+      document.getElementById('hintCountDisplay').textContent = hintCount;
+      document.getElementById('qualtricsStatus').textContent =
+        (typeof Qualtrics !== 'undefined' && Qualtrics.SurveyEngine)
+          ? '✓ Sent to Qualtrics'
+          : '⚠ Qualtrics not detected (preview mode)';
+    }
 
     function showNext() {
       idx++;
@@ -192,6 +253,10 @@
       const counter = document.getElementById('counter');
       const btn = document.getElementById('nextBtn');
       if (idx >= errors.length) return;
+
+      hintCount++;
+      updateQualtrics();
+
       const e = errors[idx];
       card.innerHTML = `
         <div class="error-line"><i class="ti ti-x" style="color:#a32d2d;font-size:15px;margin-right:6px"></i>Error: <code>${e.wrong}</code></div>
@@ -213,6 +278,8 @@
 
     function resetChecker() {
       idx = -1;
+      hintCount = 0;
+      updateQualtrics();
       document.getElementById('card').innerHTML = `
         <div class="card-placeholder">
           <i class="ti ti-file-search" style="font-size:28px;"></i>
@@ -223,6 +290,9 @@
       const done = document.querySelector('.done-msg');
       if (done) done.remove();
     }
+
+    // 초기화 시 0으로 세팅
+    updateQualtrics();
   </script>
 </body>
 </html>
